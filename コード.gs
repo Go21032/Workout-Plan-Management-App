@@ -1,6 +1,6 @@
 // ===== 設定 =====
-const OPENROUTER_API_KEY = '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';
-const SPREADSHEET_ID = '1tT53rnTpAjIFZ4uXJXO13AcIFfb2hRJkAa5GUqQgVUU';
+const OPENROUTER_API_KEY = 'ここにAPIキー';
+const SPREADSHEET_ID = 'ここにスプレッドシートのID';
 
 // ===== Webアプリのエントリーポイント =====
 function doGet() {
