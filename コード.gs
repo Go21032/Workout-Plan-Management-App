@@ -14,7 +14,58 @@ function processImage(base64Image) {
   try {
     const jsonData = analyzeImageWithOpenRouter(base64Image);
     const expanded = expandRecords(jsonData.records);
+
+    // 既存シートチェック
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const existing = ss.getSheetByName(jsonData.date);
+    if (existing) {
+      // 解析済みデータをキャッシュしてフロントに確認を返す
+      const cache = CacheService.getScriptCache();
+      cache.put('pendingRecords', JSON.stringify(expanded), 600); // 10分間保持
+      return {
+        success: false,
+        needsConfirm: true,
+        date: jsonData.date,
+        message: `「${jsonData.date}」のシートは既に存在します。別の日付を入力してください。`
+      };
+    }
+
     const result = writeToSpreadsheet(jsonData.date, expanded);
+    return { success: true, message: result };
+  } catch (e) {
+    return { success: false, message: e.message };
+  }
+}
+
+// ===== 手動日付で書き込み（日付かぶり時の再送信用） =====
+function writeWithManualDate(manualDate) {
+  try {
+    // 日付フォーマット簡易チェック
+    if (!manualDate || manualDate.trim() === '') {
+      return { success: false, message: '日付を入力してください。' };
+    }
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const existing = ss.getSheetByName(manualDate);
+    if (existing) {
+      return {
+        success: false,
+        needsConfirm: true,
+        date: manualDate,
+        message: `「${manualDate}」も既に存在します。別の日付を入力してください。`
+      };
+    }
+
+    // キャッシュからデータ取得
+    const cache = CacheService.getScriptCache();
+    const cached = cache.get('pendingRecords');
+    if (!cached) {
+      return { success: false, message: 'セッションが切れました。もう一度画像をアップロードしてください。' };
+    }
+
+    const expanded = JSON.parse(cached);
+    cache.remove('pendingRecords');
+    const result = writeToSpreadsheet(manualDate, expanded);
     return { success: true, message: result };
   } catch (e) {
     return { success: false, message: e.message };
@@ -44,13 +95,10 @@ function expandRecords(records) {
       const lMatch = part.match(/^[Ll](\d+)$/);
 
       if (lMatch) {
-        // L表記 → セット数は必ず1
         expanded.push({ menu, weight, reps: Number(lMatch[1]), sets: 1 });
       } else if (isSplit) {
-        // カンマ分割された行 → セット数は必ず1
         expanded.push({ menu, weight, reps: Number(part), sets: 1 });
       } else {
-        // 分割なし → 元のセット数を引き継ぐ
         expanded.push({ menu, weight, reps: Number(part), sets });
       }
     }
@@ -137,7 +185,6 @@ function analyzeImageWithOpenRouter(base64Image) {
   const content = responseJson.choices[0].message.content;
   Logger.log('モデル応答: ' + content);
 
-  // contentがnullまたは空の場合（画像非対応モデルが選ばれた場合）
   if (!content || content.trim() === '') {
     throw new Error('モデルが画像を処理できませんでした。もう一度試してください。');
   }
@@ -159,13 +206,11 @@ function writeToSpreadsheet(date, records) {
 
   const sheet = ss.insertSheet(date, 0);
 
-  // ヘッダー（B〜E列、備考列なし）
   sheet.getRange('B2:E2').setValues([['メニュー名', '重量', '回数', 'セット数']]);
   sheet.getRange('B2:E2').setFontWeight('bold');
 
-  // データ書き込み
   for (let i = 0; i < records.length; i++) {
-    const row = i + 2;
+    const row = i + 3;
     const r = records[i];
     sheet.getRange(row, 2).setValue(r.menu   ?? '');
     sheet.getRange(row, 3).setValue(r.weight ?? '');
@@ -173,21 +218,20 @@ function writeToSpreadsheet(date, records) {
     sheet.getRange(row, 5).setValue(r.sets   ?? '');
   }
 
-  // プルダウンをデータ行のみに設定
   const menuSheet = ss.getSheetByName('メニューリスト');
   if (menuSheet && records.length > 0) {
     const rule = SpreadsheetApp.newDataValidation()
       .requireValueInRange(menuSheet.getRange('B2:B'), true)
       .build();
-    sheet.getRange(2, 2, records.length, 1).setDataValidation(rule);
+    sheet.getRange(3, 2, records.length, 1).setDataValidation(rule);
   }
 
   return `「${date}」シートを作成し、${records.length}件のデータを入力しました！`;
 }
 
 function openWebApp() {
-  const url = 'https://script.google.com/macros/s/AKfycbyCScGoS-kjtdinTDPvQDWZU_P3UYRiP8ReQTHA85NvAk32rUe0_t1ry6yWHxkcSAt-/exec';
-  const html = `<script>window.open('${url}','_blank');google.script.host.close();</script>`;
+  const url = 'https://script.google.com/macros/s/AKfycbyGcPoQBJLYlHYa5cdEcEQbU47_AaxbDh3L-iqkdNQ/dev';
+  const html = `<script>window.open('${url}','_blank');google.script.host.close();<\/script>`;
   const ui = HtmlService.createHtmlOutput(html).setWidth(1).setHeight(1);
   SpreadsheetApp.getUi().showModalDialog(ui, 'Webアプリを開いています...');
 }
@@ -196,31 +240,13 @@ function openWebApp() {
 function onEdit(e) {
   const sheet = e.range.getSheet();
   const sheetName = sheet.getName();
-  
-  // メニューリストシートのみ対応
   if (sheetName !== 'メニューリスト') return;
-  
-  // チェックボックスのセル位置（例：J2）を監視
   const targetCell = 'J2';
   if (e.range.getA1Notation() !== targetCell) return;
-  
-  // チェックがONになった時だけ動く
   if (e.value !== 'TRUE') return;
-
-  // チェックを自動でOFFに戻す（次回も使えるように）
   sheet.getRange(targetCell).setValue(false);
-
-  // WebアプリのURLを開く
-  const webAppUrl = 'https://script.google.com/macros/s/AKfycbyCScGoS-kjtdinTDPvQDWZU_P3UYRiP8ReQTHA85NvAk32rUe0_t1ry6yWHxkcSAt-/exec';
-  const html = `
-    <html>
-      <body>
-        <script>
-          window.open('${webAppUrl}', '_blank');
-          google.script.host.close();
-        </script>
-      </body>
-    </html>`;
+  const webAppUrl = 'https://script.google.com/macros/s/AKfycbyGcPoQBJLYlHYa5cdEcEQbU47_AaxbDh3L-iqkdNQ/dev';
+  const html = `<html><body><script>window.open('${webAppUrl}', '_blank');google.script.host.close();<\/script></body></html>`;
   const ui = HtmlService.createHtmlOutput(html).setWidth(1).setHeight(1);
   SpreadsheetApp.getUi().showModalDialog(ui, 'Webアプリを開いています...');
 }
@@ -228,14 +254,10 @@ function onEdit(e) {
 // ===== デバッグ用 =====
 function debugOpenRouter() {
   const url = 'https://openrouter.ai/api/v1/chat/completions';
-
   const payload = {
     model: 'openrouter/free',
-    messages: [
-      { role: 'user', content: 'こんにちは。一言で返してください。' }
-    ]
+    messages: [{ role: 'user', content: 'こんにちは。一言で返してください。' }]
   };
-
   const options = {
     method: 'post',
     contentType: 'application/json',
@@ -247,38 +269,7 @@ function debugOpenRouter() {
     payload: JSON.stringify(payload),
     muteHttpExceptions: true
   };
-
   const response = UrlFetchApp.fetch(url, options);
   Logger.log('ステータス: ' + response.getResponseCode());
   Logger.log('レスポンス: ' + response.getContentText());
-}
-
-function debugAllModels() {
-  const models = [
-    'google/gemma-4-31b-it:free',
-    'google/gemma-4-26b-a4b-it:free',
-    'openrouter/free'
-  ];
-
-  const url = 'https://openrouter.ai/api/v1/chat/completions';
-  const options = {
-    method: 'post',
-    contentType: 'application/json',
-    headers: {
-      'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-      'HTTP-Referer': 'https://script.google.com',
-      'X-Title': 'Workout Tracker'
-    },
-    muteHttpExceptions: true
-  };
-
-  for (const model of models) {
-    const payload = {
-      model: model,
-      messages: [{ role: 'user', content: 'テスト' }]
-    };
-    options.payload = JSON.stringify(payload);
-    const response = UrlFetchApp.fetch(url, options);
-    Logger.log(model + ' → ' + response.getResponseCode() + ' : ' + response.getContentText().substring(0, 100));
-  }
 }
