@@ -230,7 +230,7 @@ function writeToSpreadsheet(date, records) {
 }
 
 function openWebApp() {
-  const url = 'https://script.google.com/macros/s/AKfycbyGcPoQBJLYlHYa5cdEcEQbU47_AaxbDh3L-iqkdNQ/dev';
+  const url = 'デプロイのURL';
   const html = `<script>window.open('${url}','_blank');google.script.host.close();<\/script>`;
   const ui = HtmlService.createHtmlOutput(html).setWidth(1).setHeight(1);
   SpreadsheetApp.getUi().showModalDialog(ui, 'Webアプリを開いています...');
@@ -245,31 +245,8 @@ function onEdit(e) {
   if (e.range.getA1Notation() !== targetCell) return;
   if (e.value !== 'TRUE') return;
   sheet.getRange(targetCell).setValue(false);
-  const webAppUrl = 'https://script.google.com/macros/s/AKfycbyGcPoQBJLYlHYa5cdEcEQbU47_AaxbDh3L-iqkdNQ/dev';
+  const webAppUrl = 'デプロイのURL';
   const html = `<html><body><script>window.open('${webAppUrl}', '_blank');google.script.host.close();<\/script></body></html>`;
   const ui = HtmlService.createHtmlOutput(html).setWidth(1).setHeight(1);
   SpreadsheetApp.getUi().showModalDialog(ui, 'Webアプリを開いています...');
-}
-
-// ===== デバッグ用 =====
-function debugOpenRouter() {
-  const url = 'https://openrouter.ai/api/v1/chat/completions';
-  const payload = {
-    model: 'openrouter/free',
-    messages: [{ role: 'user', content: 'こんにちは。一言で返してください。' }]
-  };
-  const options = {
-    method: 'post',
-    contentType: 'application/json',
-    headers: {
-      'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-      'HTTP-Referer': 'https://script.google.com',
-      'X-Title': 'Workout Tracker'
-    },
-    payload: JSON.stringify(payload),
-    muteHttpExceptions: true
-  };
-  const response = UrlFetchApp.fetch(url, options);
-  Logger.log('ステータス: ' + response.getResponseCode());
-  Logger.log('レスポンス: ' + response.getContentText());
 }
