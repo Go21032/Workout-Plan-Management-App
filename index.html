@@ -26,9 +26,20 @@
       box-shadow: 0 4px 24px rgba(0,0,0,0.08);
     }
 
-    h1 { font-size: 20px; font-weight: 700; color: #1a1a1a; margin-bottom: 8px; }
-    .subtitle { font-size: 13px; color: #888; margin-bottom: 28px; }
+    h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin-bottom: 8px;
+    }
 
+    .subtitle {
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 28px;
+    }
+
+    /* アップロードエリア */
     .upload-area {
       border: 2px dashed #d0d0d0;
       border-radius: 12px;
@@ -39,237 +50,456 @@
       margin-bottom: 20px;
       position: relative;
     }
-    .upload-area:hover, .upload-area.drag-over { border-color: #4f8ef7; background: #f0f5ff; }
-    .upload-area input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
-    .upload-icon { font-size: 40px; margin-bottom: 12px; }
-    .upload-text { font-size: 15px; color: #555; font-weight: 500; }
-    .upload-sub { font-size: 12px; color: #aaa; margin-top: 4px; }
 
-    #preview-area { display: none; margin-bottom: 20px; text-align: center; }
-    #preview-img { max-width: 100%; max-height: 260px; border-radius: 10px; border: 1px solid #e0e0e0; object-fit: contain; }
-    .preview-name { font-size: 12px; color: #888; margin-top: 8px; }
-    .change-btn { font-size: 12px; color: #4f8ef7; background: none; border: none; cursor: pointer; margin-top: 4px; text-decoration: underline; }
-
-    #run-btn {
-      width: 100%; padding: 14px; background: #4f8ef7; color: white;
-      border: none; border-radius: 10px; font-size: 16px; font-weight: 600;
-      cursor: pointer; transition: background 0.2s, opacity 0.2s;
+    .upload-area:hover, .upload-area.drag-over {
+      border-color: #4f8ef7;
+      background: #f0f5ff;
     }
+
+    .upload-area input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .upload-icon {
+      font-size: 40px;
+      margin-bottom: 12px;
+    }
+
+    .upload-text {
+      font-size: 15px;
+      color: #555;
+      font-weight: 500;
+    }
+
+    .upload-sub {
+      font-size: 12px;
+      color: #aaa;
+      margin-top: 4px;
+    }
+
+    /* プレビュー（複数枚対応：グリッド表示） */
+    #preview-area {
+      display: none;
+      margin-bottom: 20px;
+    }
+
+    .preview-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .preview-item {
+      position: relative;
+      border: 1px solid #e0e0e0;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #fafafa;
+    }
+
+    .preview-item img {
+      width: 100%;
+      height: 140px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .preview-item .remove-btn {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.55);
+      color: white;
+      border: none;
+      font-size: 13px;
+      line-height: 22px;
+      text-align: center;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .preview-count {
+      text-align: center;
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 8px;
+    }
+
+    .add-more-btn {
+      display: block;
+      width: 100%;
+      text-align: center;
+      font-size: 12px;
+      color: #4f8ef7;
+      background: none;
+      border: 1px dashed #b9d3fb;
+      border-radius: 8px;
+      padding: 8px;
+      cursor: pointer;
+      margin-bottom: 4px;
+    }
+
+    .change-btn {
+      display: block;
+      width: 100%;
+      text-align: center;
+      font-size: 12px;
+      color: #888;
+      background: none;
+      border: none;
+      cursor: pointer;
+      margin-top: 4px;
+      text-decoration: underline;
+    }
+
+    /* 実行ボタン */
+    #run-btn {
+      width: 100%;
+      padding: 14px;
+      background: #4f8ef7;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, opacity 0.2s;
+    }
+
     #run-btn:hover:not(:disabled) { background: #3a7ae0; }
     #run-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-    #loading { display: none; text-align: center; margin-top: 20px; }
-    .spinner {
-      width: 32px; height: 32px; border: 3px solid #e0e0e0;
-      border-top-color: #4f8ef7; border-radius: 50%;
-      animation: spin 0.8s linear infinite; margin: 0 auto 12px;
+    /* ローディング */
+    #loading {
+      display: none;
+      text-align: center;
+      margin-top: 20px;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .loading-text { font-size: 14px; color: #555; }
 
-    #result { display: none; margin-top: 20px; padding: 16px; border-radius: 10px; font-size: 14px; line-height: 1.6; }
-    #result.success { background: #f0faf4; border: 1px solid #b2dfcc; color: #1e7a46; }
-    #result.error { background: #fff5f5; border: 1px solid #fcc; color: #c0392b; }
-    #result.warning { background: #fffbf0; border: 1px solid #f5d87a; color: #7a5c00; }
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid #e0e0e0;
+      border-top-color: #4f8ef7;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-text {
+      font-size: 14px;
+      color: #555;
+    }
+
+    /* 結果表示 */
+    #result {
+      display: none;
+      margin-top: 20px;
+      padding: 16px;
+      border-radius: 10px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    #result.success {
+      background: #f0faf4;
+      border: 1px solid #b2dfcc;
+      color: #1e7a46;
+    }
+
+    #result.error {
+      background: #fff5f5;
+      border: 1px solid #fcc;
+      color: #c0392b;
+    }
+
     .result-icon { font-size: 20px; margin-right: 6px; }
 
-    /* 日付修正エリア */
-    #date-fix-area {
+    /* リセットボタン */
+    #reset-btn {
       display: none;
-      margin-top: 16px;
-      padding: 16px;
-      background: #f9f9f9;
+      width: 100%;
+      margin-top: 12px;
+      padding: 10px;
+      background: none;
+      border: 1px solid #d0d0d0;
       border-radius: 10px;
-      border: 1px solid #e0e0e0;
-    }
-    #date-fix-area label { font-size: 13px; color: #555; display: block; margin-bottom: 6px; }
-    #date-input {
-      width: 100%; padding: 10px 12px; font-size: 15px;
-      border: 1px solid #ccc; border-radius: 8px; margin-bottom: 10px;
-    }
-    #date-input:focus { outline: none; border-color: #4f8ef7; }
-    #date-submit-btn {
-      width: 100%; padding: 12px; background: #4f8ef7; color: white;
-      border: none; border-radius: 8px; font-size: 15px; font-weight: 600;
+      font-size: 14px;
+      color: #555;
       cursor: pointer;
     }
-    #date-submit-btn:hover { background: #3a7ae0; }
 
-    #reset-btn { display: none; width: 100%; margin-top: 12px; padding: 10px; background: none; border: 1px solid #d0d0d0; border-radius: 10px; font-size: 14px; color: #555; cursor: pointer; }
     #reset-btn:hover { background: #f5f5f5; }
   </style>
 </head>
 <body>
   <div class="card">
-    <h1>💪 筋トレ記録 自動入力ver23</h1>
-    <p class="subtitle">手書きメモの写真をアップロードするだけで自動でシートに記録します</p>
+    <h1>💪 筋トレ記録 自動入力ver27</h1>
+    <p class="subtitle">手書きメモの写真をアップロードするだけで自動でシートに記録します（1日のメモが複数枚に分かれている場合は2枚まで同時に選択できます。自動で1枚に結合してから解析します）</p>
 
+    <!-- アップロードエリア -->
     <div class="upload-area" id="upload-area">
-      <input type="file" id="file-input" accept="image/*">
+      <input type="file" id="file-input" accept="image/*" multiple>
       <div class="upload-icon">📷</div>
       <div class="upload-text">写真をここにドロップ</div>
-      <div class="upload-sub">またはクリックして選択（JPG / PNG）</div>
+      <div class="upload-sub">またはクリックして選択（JPG / PNG・最大2枚）</div>
     </div>
 
+    <!-- プレビュー -->
     <div id="preview-area">
-      <img id="preview-img" src="" alt="プレビュー">
-      <p class="preview-name" id="preview-name"></p>
-      <button class="change-btn" onclick="resetUpload()">別の写真に変更</button>
+      <p class="preview-count" id="preview-count"></p>
+      <div class="preview-grid" id="preview-grid"></div>
+      <button class="add-more-btn" id="add-more-btn" onclick="triggerAddMore()">＋ もう1枚追加する（同じ日の続き）</button>
+      <button class="change-btn" onclick="resetUpload()">最初からやり直す</button>
     </div>
 
+    <!-- 実行ボタン -->
     <button id="run-btn" onclick="runProcess()" disabled>
       画像を解析してシートに記録する
     </button>
 
+    <!-- ローディング -->
     <div id="loading">
       <div class="spinner"></div>
       <p class="loading-text" id="loading-text">AIが画像を解析中...</p>
     </div>
 
+    <!-- 結果 -->
     <div id="result"></div>
 
-    <!-- 日付修正エリア（かぶり時のみ表示） -->
-    <div id="date-fix-area">
-      <label>正しい日付を入力してください（例：26/6/8）</label>
-      <input type="text" id="date-input" placeholder="YY/M/D 形式で入力">
-      <button id="date-submit-btn" onclick="submitManualDate()">この日付で登録する</button>
-    </div>
-
+    <!-- リセット -->
     <button id="reset-btn" onclick="resetAll()">新しい写真を登録する</button>
   </div>
 
+  <!-- 追加用の隠しinput（2枚目を追加するため） -->
+  <input type="file" id="file-input-add" accept="image/*" style="display:none;">
+
+  <!-- 画像結合用の非表示Canvas -->
+  <canvas id="merge-canvas" style="display:none;"></canvas>
+
   <script>
-    let selectedFile = null;
+    const MAX_IMAGES = 2;
+    let selectedFiles = []; // File[]
 
-    const fileInput     = document.getElementById('file-input');
-    const uploadArea    = document.getElementById('upload-area');
-    const previewArea   = document.getElementById('preview-area');
-    const previewImg    = document.getElementById('preview-img');
-    const previewName   = document.getElementById('preview-name');
-    const runBtn        = document.getElementById('run-btn');
-    const loading       = document.getElementById('loading');
-    const loadingText   = document.getElementById('loading-text');
-    const result        = document.getElementById('result');
-    const resetBtn      = document.getElementById('reset-btn');
-    const dateFix       = document.getElementById('date-fix-area');
-    const dateInput     = document.getElementById('date-input');
+    const fileInput = document.getElementById('file-input');
+    const fileInputAdd = document.getElementById('file-input-add');
+    const uploadArea = document.getElementById('upload-area');
+    const previewArea = document.getElementById('preview-area');
+    const previewGrid = document.getElementById('preview-grid');
+    const previewCount = document.getElementById('preview-count');
+    const addMoreBtn = document.getElementById('add-more-btn');
+    const runBtn = document.getElementById('run-btn');
+    const loading = document.getElementById('loading');
+    const loadingText = document.getElementById('loading-text');
+    const result = document.getElementById('result');
+    const resetBtn = document.getElementById('reset-btn');
+    const mergeCanvas = document.getElementById('merge-canvas');
 
+    // ファイル選択（最初の選択：複数可）
     fileInput.addEventListener('change', (e) => {
-      if (e.target.files[0]) handleFile(e.target.files[0]);
+      addFiles(Array.from(e.target.files));
+      fileInput.value = '';
     });
 
-    uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('drag-over'); });
-    uploadArea.addEventListener('dragleave', () => { uploadArea.classList.remove('drag-over'); });
+    // 追加選択（2枚目用）
+    fileInputAdd.addEventListener('change', (e) => {
+      addFiles(Array.from(e.target.files));
+      fileInputAdd.value = '';
+    });
+
+    // ドラッグ＆ドロップ
+    uploadArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadArea.classList.add('drag-over');
+    });
+    uploadArea.addEventListener('dragleave', () => {
+      uploadArea.classList.remove('drag-over');
+    });
     uploadArea.addEventListener('drop', (e) => {
       e.preventDefault();
       uploadArea.classList.remove('drag-over');
-      if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+      if (e.dataTransfer.files.length) {
+        addFiles(Array.from(e.dataTransfer.files));
+      }
     });
 
-    function handleFile(file) {
-      selectedFile = file;
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        previewImg.src = e.target.result;
-        previewName.textContent = file.name;
-        uploadArea.style.display = 'none';
-        previewArea.style.display = 'block';
-        runBtn.disabled = false;
-        result.style.display = 'none';
-        dateFix.style.display = 'none';
-        resetBtn.style.display = 'none';
-      };
-      reader.readAsDataURL(file);
+    function triggerAddMore() {
+      if (selectedFiles.length >= MAX_IMAGES) return;
+      fileInputAdd.click();
+    }
+
+    function addFiles(files) {
+      const imageFiles = files.filter(f => f.type.startsWith('image/'));
+      if (imageFiles.length === 0) return;
+
+      for (const f of imageFiles) {
+        if (selectedFiles.length >= MAX_IMAGES) break;
+        selectedFiles.push(f);
+      }
+      renderPreview();
+    }
+
+    function removeFile(index) {
+      selectedFiles.splice(index, 1);
+      renderPreview();
+    }
+
+    function renderPreview() {
+      if (selectedFiles.length === 0) {
+        resetUpload();
+        return;
+      }
+
+      uploadArea.style.display = 'none';
+      previewArea.style.display = 'block';
+      runBtn.disabled = false;
+      result.style.display = 'none';
+      resetBtn.style.display = 'none';
+
+      previewCount.textContent = selectedFiles.length === 1
+        ? '1枚を解析します'
+        : `${selectedFiles.length}枚を1枚に結合してから解析します`;
+
+      previewGrid.innerHTML = '';
+      selectedFiles.forEach((file, idx) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const item = document.createElement('div');
+          item.className = 'preview-item';
+          item.innerHTML = `
+            <img src="${e.target.result}" alt="プレビュー${idx + 1}">
+            <button class="remove-btn" onclick="removeFile(${idx})">×</button>
+          `;
+          previewGrid.appendChild(item);
+        };
+        reader.readAsDataURL(file);
+      });
+
+      addMoreBtn.style.display = selectedFiles.length < MAX_IMAGES ? 'block' : 'none';
     }
 
     function resetUpload() {
       uploadArea.style.display = 'block';
       previewArea.style.display = 'none';
       runBtn.disabled = true;
-      selectedFile = null;
+      selectedFiles = [];
       fileInput.value = '';
-      dateFix.style.display = 'none';
+      fileInputAdd.value = '';
+      previewGrid.innerHTML = '';
+    }
+
+    // File を Image要素に読み込む
+    function loadImage(file) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          img.onload = () => resolve(img);
+          img.onerror = reject;
+          img.src = e.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // 複数画像をCanvasで縦に結合し、1枚のJPEG（Base64、ヘッダ抜き）を返す
+    async function mergeImagesToBase64(files) {
+      if (files.length === 1) {
+        // 1枚だけなら結合不要。そのままBase64化。
+        const base64 = await toBase64(files[0]);
+        return base64.split(',')[1];
+      }
+
+      const images = await Promise.all(files.map(loadImage));
+
+      // 横幅は最大のものに合わせ、各画像はその幅にスケーリングして高さを再計算
+      const targetWidth = Math.max(...images.map(img => img.naturalWidth));
+      const scaledHeights = images.map(img =>
+        Math.round(img.naturalHeight * (targetWidth / img.naturalWidth))
+      );
+      const totalHeight = scaledHeights.reduce((sum, h) => sum + h, 0);
+
+      mergeCanvas.width = targetWidth;
+      mergeCanvas.height = totalHeight;
+      const ctx = mergeCanvas.getContext('2d');
+
+      // 背景を白で塗っておく（余白対策）
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, targetWidth, totalHeight);
+
+      let yOffset = 0;
+      images.forEach((img, idx) => {
+        const h = scaledHeights[idx];
+        ctx.drawImage(img, 0, yOffset, targetWidth, h);
+        yOffset += h;
+      });
+
+      // JPEGとして書き出し（品質0.85でファイルサイズを抑える）
+      const dataUrl = mergeCanvas.toDataURL('image/jpeg', 0.85);
+      return dataUrl.split(',')[1];
     }
 
     async function runProcess() {
-      if (!selectedFile) return;
+      if (selectedFiles.length === 0) return;
 
+      // UI切り替え
       runBtn.disabled = true;
       loading.style.display = 'block';
       result.style.display = 'none';
-      dateFix.style.display = 'none';
       resetBtn.style.display = 'none';
-      loadingText.textContent = 'AIが画像を解析中...';
+      loadingText.textContent = selectedFiles.length > 1
+        ? `${selectedFiles.length}枚の画像を結合中...`
+        : 'AIが画像を解析中...';
 
       try {
-        const base64 = await toBase64(selectedFile);
-        const base64Data = base64.split(',')[1];
+        // 複数枚なら結合して1枚のBase64に、1枚ならそのままBase64に
+        const base64Data = await mergeImagesToBase64(selectedFiles);
 
-        loadingText.textContent = 'スプレッドシートに書き込み中...';
+        loadingText.textContent = 'AIが画像を解析中...';
 
+        // GASのサーバー関数を呼び出す（常に1枚のBase64文字列を渡す）
         google.script.run
-          .withSuccessHandler(handleResponse)
+          .withSuccessHandler((res) => {
+            loading.style.display = 'none';
+            result.style.display = 'block';
+            resetBtn.style.display = 'block';
+            if (res.success) {
+              result.className = 'success';
+              result.innerHTML = `<span class="result-icon">✅</span>${res.message}`;
+            } else {
+              result.className = 'error';
+              result.innerHTML = `<span class="result-icon">❌</span>エラー: ${res.message}`;
+              runBtn.disabled = false;
+            }
+          })
           .withFailureHandler((err) => {
             loading.style.display = 'none';
-            showResult('error', `通信エラー: ${err.message}`);
+            result.style.display = 'block';
+            result.className = 'error';
+            result.innerHTML = `<span class="result-icon">❌</span>通信エラー: ${err.message}`;
             runBtn.disabled = false;
           })
           .processImage(base64Data);
 
       } catch (e) {
         loading.style.display = 'none';
-        showResult('error', `エラー: ${e.message}`);
+        result.style.display = 'block';
+        result.className = 'error';
+        result.innerHTML = `<span class="result-icon">❌</span>エラー: ${e.message}`;
         runBtn.disabled = false;
       }
-    }
-
-    function handleResponse(res) {
-      loading.style.display = 'none';
-
-      if (res.needsConfirm) {
-        // 日付かぶり → 警告表示 ＋ 日付入力欄を出す
-        showResult('warning', `⚠️ ${res.message}`);
-        dateInput.value = res.date; // AIが読んだ日付を初期値としてセット
-        dateFix.style.display = 'block';
-        dateInput.focus();
-        return;
-      }
-
-      resetBtn.style.display = 'block';
-      if (res.success) {
-        showResult('success', `✅ ${res.message}`);
-      } else {
-        showResult('error', `❌ エラー: ${res.message}`);
-        runBtn.disabled = false;
-      }
-    }
-
-    function submitManualDate() {
-      const manualDate = dateInput.value.trim();
-      if (!manualDate) {
-        dateInput.style.borderColor = '#e74c3c';
-        dateInput.focus();
-        return;
-      }
-      dateInput.style.borderColor = '#ccc';
-      dateFix.style.display = 'none';
-      loading.style.display = 'block';
-      loadingText.textContent = 'スプレッドシートに書き込み中...';
-
-      google.script.run
-        .withSuccessHandler(handleResponse)
-        .withFailureHandler((err) => {
-          loading.style.display = 'none';
-          showResult('error', `通信エラー: ${err.message}`);
-          dateFix.style.display = 'block';
-        })
-        .writeWithManualDate(manualDate);
-    }
-
-    function showResult(type, message) {
-      result.className = type;
-      result.innerHTML = message;
-      result.style.display = 'block';
     }
 
     function toBase64(file) {
@@ -284,9 +514,7 @@
     function resetAll() {
       resetUpload();
       result.style.display = 'none';
-      dateFix.style.display = 'none';
       resetBtn.style.display = 'none';
-      runBtn.disabled = true;
       loadingText.textContent = 'AIが画像を解析中...';
     }
   </script>
