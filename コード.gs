@@ -10,7 +10,6 @@ function doGet() {
 }
 
 // ===== メイン処理 =====
-// base64Image: Base64文字列（1枚分。複数枚はフロントエンドで結合済み）
 function processImage(base64Image) {
   try {
     const jsonData = analyzeImageWithOpenRouter(base64Image);
@@ -45,13 +44,10 @@ function expandRecords(records) {
       const lMatch = part.match(/^[Ll](\d+)$/);
 
       if (lMatch) {
-        // L表記 → セット数は必ず1
         expanded.push({ menu, weight, reps: Number(lMatch[1]), sets: 1 });
       } else if (isSplit) {
-        // カンマ分割された行 → セット数は必ず1
         expanded.push({ menu, weight, reps: Number(part), sets: 1 });
       } else {
-        // 分割なし → 元のセット数を引き継ぐ
         expanded.push({ menu, weight, reps: Number(part), sets });
       }
     }
@@ -62,7 +58,7 @@ function expandRecords(records) {
 
 // ===== OpenRouter API呼び出し（リトライ付き） =====
 function analyzeImageWithOpenRouter(base64Image) {
-  const MAX_ATTEMPTS = 2; // 1回失敗したら1回だけ再試行
+  const MAX_ATTEMPTS = 3; // 最大3回試行
   let lastError = null;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
@@ -71,17 +67,19 @@ function analyzeImageWithOpenRouter(base64Image) {
     } catch (e) {
       lastError = e;
       Logger.log(`試行${attempt}回目失敗: ${e.message}`);
-      // 最終試行でなければ少し待ってから再試行
       if (attempt < MAX_ATTEMPTS) {
-        Utilities.sleep(2000);
+        Utilities.sleep(3000); // 3秒待ってリトライ
       }
     }
   }
 
-  // 全試行失敗
-  const isTimeout = lastError && /timeout|タイムアウト|timed out/i.test(lastError.message);
-  if (isTimeout) {
-    throw new Error('AIモデルの応答がタイムアウトしました。画像サイズが大きい場合は撮影し直すか、数分待ってから再度お試しください。');
+  // 全試行失敗時のエラーメッセージを分かりやすく変換
+  const msg = lastError ? lastError.message : '';
+  if (/timeout|タイムアウト|timed out/i.test(msg)) {
+    throw new Error('AIモデルの応答がタイムアウトしました。数分待ってから再度お試しください。');
+  }
+  if (/safety|safe/i.test(msg)) {
+    throw new Error('無料モデルの安全フィルターに引っかかりました。もう一度ボタンを押してください（別のモデルにルーティングされます）。');
   }
   throw lastError;
 }
@@ -103,7 +101,7 @@ function callOpenRouterOnce(base64Image, attempt) {
 7. カンマ区切りに見えても、実際には1つの数字の可能性があります。数字の形をよく確認してください。
 8. 備考欄に「L5」「L10」など複数の記載がある場合は、すべて漏らさずrepsにカンマ区切りで追記してください。
 9. 同じメニュー名で重量が異なる行が複数ある場合（例：13.75と11.25）は、それぞれ必ず別の行として記録してください。重量の行を絶対にスキップしないでください。
-10. 画像内に複数の日付ブロック（例：上部と下部で別々の日付）が含まれている場合がありますが、その場合も気づいた範囲で全てのメニュー行をrecords配列にまとめてください。
+10. 画像内に複数の日付ブロックが含まれている場合も、全てのメニュー行をrecords配列にまとめてください。
 
 【出力形式】必ず以下のJSON形式のみで返してください。前後に文章・記号・コードブロック一切不要。
 {
@@ -169,11 +167,15 @@ function callOpenRouterOnce(base64Image, attempt) {
   }
 
   const content = responseJson.choices[0].message.content;
-  Logger.log('モデル応答: ' + content);
+  Logger.log(`試行${attempt}回目 モデル応答: ` + content);
 
-  // contentがnullまたは空の場合（画像非対応モデルが選ばれた場合）
   if (!content || content.trim() === '') {
-    throw new Error('モデルが画像を処理できませんでした。もう一度試してください。');
+    throw new Error('モデルが画像を処理できませんでした。');
+  }
+
+  // 安全フィルターの応答を検知してリトライ扱いにする
+  if (/^(user\s+)?safety\s*:/i.test(content.trim())) {
+    throw new Error(`safety_filter: ${content.trim()}`);
   }
 
   const jsonMatch = content.match(/\{[\s\S]*\}/);
@@ -193,13 +195,11 @@ function writeToSpreadsheet(date, records) {
 
   const sheet = ss.insertSheet(date, 0);
 
-  // ヘッダー（B〜E列、備考列なし）
   sheet.getRange('B2:E2').setValues([['メニュー名', '重量', '回数', 'セット数']]);
   sheet.getRange('B2:E2').setFontWeight('bold');
 
-  // データ書き込み
   for (let i = 0; i < records.length; i++) {
-    const row = i + 2;
+    const row = i + 3;
     const r = records[i];
     sheet.getRange(row, 2).setValue(r.menu   ?? '');
     sheet.getRange(row, 3).setValue(r.weight ?? '');
@@ -207,13 +207,12 @@ function writeToSpreadsheet(date, records) {
     sheet.getRange(row, 5).setValue(r.sets   ?? '');
   }
 
-  // プルダウンをデータ行のみに設定
   const menuSheet = ss.getSheetByName('メニューリスト');
   if (menuSheet && records.length > 0) {
     const rule = SpreadsheetApp.newDataValidation()
       .requireValueInRange(menuSheet.getRange('B2:B'), true)
       .build();
-    sheet.getRange(2, 2, records.length, 1).setDataValidation(rule);
+    sheet.getRange(3, 2, records.length, 1).setDataValidation(rule);
   }
 
   return `「${date}」シートを作成し、${records.length}件のデータを入力しました！`;
@@ -231,30 +230,22 @@ function onEdit(e) {
   const sheet = e.range.getSheet();
   const sheetName = sheet.getName();
 
-  // メニューリストシートのみ対応
   if (sheetName !== 'メニューリスト') return;
 
-  // チェックボックスのセル位置（例：J2）を監視
   const targetCell = 'J2';
   if (e.range.getA1Notation() !== targetCell) return;
-
-  // チェックがONになった時だけ動く
   if (e.value !== 'TRUE') return;
 
-  // チェックを自動でOFFに戻す（次回も使えるように）
   sheet.getRange(targetCell).setValue(false);
 
-  // WebアプリのURLを開く
   const webAppUrl = 'https://script.google.com/macros/s/AKfycbyCScGoS-kjtdinTDPvQDWZU_P3UYRiP8ReQTHA85NvAk32rUe0_t1ry6yWHxkcSAt-/exec';
   const html = `
-    <html>
-      <body>
-        <script>
-          window.open('${webAppUrl}', '_blank');
-          google.script.host.close();
-        </script>
-      </body>
-    </html>`;
+    <html><body>
+      <script>
+        window.open('${webAppUrl}', '_blank');
+        google.script.host.close();
+      </script>
+    </body></html>`;
   const ui = HtmlService.createHtmlOutput(html).setWidth(1).setHeight(1);
   SpreadsheetApp.getUi().showModalDialog(ui, 'Webアプリを開いています...');
 }
@@ -262,14 +253,10 @@ function onEdit(e) {
 // ===== デバッグ用 =====
 function debugOpenRouter() {
   const url = 'https://openrouter.ai/api/v1/chat/completions';
-
   const payload = {
     model: 'openrouter/free',
-    messages: [
-      { role: 'user', content: 'こんにちは。一言で返してください。' }
-    ]
+    messages: [{ role: 'user', content: 'こんにちは。一言で返してください。' }]
   };
-
   const options = {
     method: 'post',
     contentType: 'application/json',
@@ -281,7 +268,6 @@ function debugOpenRouter() {
     payload: JSON.stringify(payload),
     muteHttpExceptions: true
   };
-
   const response = UrlFetchApp.fetch(url, options);
   Logger.log('ステータス: ' + response.getResponseCode());
   Logger.log('レスポンス: ' + response.getContentText());
@@ -293,7 +279,6 @@ function debugAllModels() {
     'google/gemma-4-26b-a4b-it:free',
     'openrouter/free'
   ];
-
   const url = 'https://openrouter.ai/api/v1/chat/completions';
   const options = {
     method: 'post',
@@ -305,12 +290,8 @@ function debugAllModels() {
     },
     muteHttpExceptions: true
   };
-
   for (const model of models) {
-    const payload = {
-      model: model,
-      messages: [{ role: 'user', content: 'テスト' }]
-    };
+    const payload = { model, messages: [{ role: 'user', content: 'テスト' }] };
     options.payload = JSON.stringify(payload);
     const response = UrlFetchApp.fetch(url, options);
     Logger.log(model + ' → ' + response.getResponseCode() + ' : ' + response.getContentText().substring(0, 100));
