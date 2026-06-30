@@ -39,7 +39,6 @@
       margin-bottom: 28px;
     }
 
-    /* アップロードエリア */
     .upload-area {
       border: 2px dashed #d0d0d0;
       border-radius: 12px;
@@ -65,10 +64,7 @@
       height: 100%;
     }
 
-    .upload-icon {
-      font-size: 40px;
-      margin-bottom: 12px;
-    }
+    .upload-icon { font-size: 40px; margin-bottom: 12px; }
 
     .upload-text {
       font-size: 15px;
@@ -82,7 +78,6 @@
       margin-top: 4px;
     }
 
-    /* プレビュー（複数枚対応：グリッド表示） */
     #preview-area {
       display: none;
       margin-bottom: 20px;
@@ -161,7 +156,6 @@
       text-decoration: underline;
     }
 
-    /* 実行ボタン */
     #run-btn {
       width: 100%;
       padding: 14px;
@@ -178,7 +172,6 @@
     #run-btn:hover:not(:disabled) { background: #3a7ae0; }
     #run-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-    /* ローディング */
     #loading {
       display: none;
       text-align: center;
@@ -197,12 +190,8 @@
 
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .loading-text {
-      font-size: 14px;
-      color: #555;
-    }
+    .loading-text { font-size: 14px; color: #555; }
 
-    /* 結果表示 */
     #result {
       display: none;
       margin-top: 20px;
@@ -226,7 +215,6 @@
 
     .result-icon { font-size: 20px; margin-right: 6px; }
 
-    /* リセットボタン */
     #reset-btn {
       display: none;
       width: 100%;
@@ -245,10 +233,9 @@
 </head>
 <body>
   <div class="card">
-    <h1>💪 筋トレ記録 自動入力ver27</h1>
+    <h1>💪 筋トレ記録 自動入力ver29</h1>
     <p class="subtitle">手書きメモの写真をアップロードするだけで自動でシートに記録します（1日のメモが複数枚に分かれている場合は2枚まで同時に選択できます。自動で1枚に結合してから解析します）</p>
 
-    <!-- アップロードエリア -->
     <div class="upload-area" id="upload-area">
       <input type="file" id="file-input" accept="image/*" multiple>
       <div class="upload-icon">📷</div>
@@ -256,7 +243,6 @@
       <div class="upload-sub">またはクリックして選択（JPG / PNG・最大2枚）</div>
     </div>
 
-    <!-- プレビュー -->
     <div id="preview-area">
       <p class="preview-count" id="preview-count"></p>
       <div class="preview-grid" id="preview-grid"></div>
@@ -264,61 +250,51 @@
       <button class="change-btn" onclick="resetUpload()">最初からやり直す</button>
     </div>
 
-    <!-- 実行ボタン -->
     <button id="run-btn" onclick="runProcess()" disabled>
       画像を解析してシートに記録する
     </button>
 
-    <!-- ローディング -->
     <div id="loading">
       <div class="spinner"></div>
       <p class="loading-text" id="loading-text">AIが画像を解析中...</p>
     </div>
 
-    <!-- 結果 -->
     <div id="result"></div>
 
-    <!-- リセット -->
     <button id="reset-btn" onclick="resetAll()">新しい写真を登録する</button>
   </div>
 
-  <!-- 追加用の隠しinput（2枚目を追加するため） -->
   <input type="file" id="file-input-add" accept="image/*" style="display:none;">
-
-  <!-- 画像結合用の非表示Canvas -->
   <canvas id="merge-canvas" style="display:none;"></canvas>
 
   <script>
     const MAX_IMAGES = 2;
-    let selectedFiles = []; // File[]
+    let selectedFiles = [];
 
-    const fileInput = document.getElementById('file-input');
-    const fileInputAdd = document.getElementById('file-input-add');
-    const uploadArea = document.getElementById('upload-area');
-    const previewArea = document.getElementById('preview-area');
-    const previewGrid = document.getElementById('preview-grid');
-    const previewCount = document.getElementById('preview-count');
-    const addMoreBtn = document.getElementById('add-more-btn');
-    const runBtn = document.getElementById('run-btn');
-    const loading = document.getElementById('loading');
-    const loadingText = document.getElementById('loading-text');
-    const result = document.getElementById('result');
-    const resetBtn = document.getElementById('reset-btn');
-    const mergeCanvas = document.getElementById('merge-canvas');
+    const fileInput     = document.getElementById('file-input');
+    const fileInputAdd  = document.getElementById('file-input-add');
+    const uploadArea    = document.getElementById('upload-area');
+    const previewArea   = document.getElementById('preview-area');
+    const previewGrid   = document.getElementById('preview-grid');
+    const previewCount  = document.getElementById('preview-count');
+    const addMoreBtn    = document.getElementById('add-more-btn');
+    const runBtn        = document.getElementById('run-btn');
+    const loading       = document.getElementById('loading');
+    const loadingText   = document.getElementById('loading-text');
+    const result        = document.getElementById('result');
+    const resetBtn      = document.getElementById('reset-btn');
+    const mergeCanvas   = document.getElementById('merge-canvas');
 
-    // ファイル選択（最初の選択：複数可）
     fileInput.addEventListener('change', (e) => {
       addFiles(Array.from(e.target.files));
       fileInput.value = '';
     });
 
-    // 追加選択（2枚目用）
     fileInputAdd.addEventListener('change', (e) => {
       addFiles(Array.from(e.target.files));
       fileInputAdd.value = '';
     });
 
-    // ドラッグ＆ドロップ
     uploadArea.addEventListener('dragover', (e) => {
       e.preventDefault();
       uploadArea.classList.add('drag-over');
@@ -329,9 +305,7 @@
     uploadArea.addEventListener('drop', (e) => {
       e.preventDefault();
       uploadArea.classList.remove('drag-over');
-      if (e.dataTransfer.files.length) {
-        addFiles(Array.from(e.dataTransfer.files));
-      }
+      if (e.dataTransfer.files.length) addFiles(Array.from(e.dataTransfer.files));
     });
 
     function triggerAddMore() {
@@ -342,7 +316,6 @@
     function addFiles(files) {
       const imageFiles = files.filter(f => f.type.startsWith('image/'));
       if (imageFiles.length === 0) return;
-
       for (const f of imageFiles) {
         if (selectedFiles.length >= MAX_IMAGES) break;
         selectedFiles.push(f);
@@ -356,20 +329,17 @@
     }
 
     function renderPreview() {
-      if (selectedFiles.length === 0) {
-        resetUpload();
-        return;
-      }
+      if (selectedFiles.length === 0) { resetUpload(); return; }
 
-      uploadArea.style.display = 'none';
+      uploadArea.style.display  = 'none';
       previewArea.style.display = 'block';
-      runBtn.disabled = false;
-      result.style.display = 'none';
-      resetBtn.style.display = 'none';
+      runBtn.disabled           = false;
+      result.style.display      = 'none';
+      resetBtn.style.display    = 'none';
 
       previewCount.textContent = selectedFiles.length === 1
         ? '1枚を解析します'
-        : `${selectedFiles.length}枚を1枚に結合してから解析します`;
+        : `${selectedFiles.length}枚を1枚に結合・リサイズしてから解析します`;
 
       previewGrid.innerHTML = '';
       selectedFiles.forEach((file, idx) => {
@@ -390,90 +360,97 @@
     }
 
     function resetUpload() {
-      uploadArea.style.display = 'block';
+      uploadArea.style.display  = 'block';
       previewArea.style.display = 'none';
-      runBtn.disabled = true;
-      selectedFiles = [];
-      fileInput.value = '';
-      fileInputAdd.value = '';
-      previewGrid.innerHTML = '';
+      runBtn.disabled           = true;
+      selectedFiles             = [];
+      fileInput.value           = '';
+      fileInputAdd.value        = '';
+      previewGrid.innerHTML     = '';
     }
 
-    // File を Image要素に読み込む
     function loadImage(file) {
       return new Promise((resolve, reject) => {
-        const img = new Image();
+        const img    = new Image();
         const reader = new FileReader();
         reader.onload = (e) => {
-          img.onload = () => resolve(img);
+          img.onload  = () => resolve(img);
           img.onerror = reject;
-          img.src = e.target.result;
+          img.src     = e.target.result;
         };
         reader.onerror = reject;
         reader.readAsDataURL(file);
       });
     }
 
-    // 複数画像をCanvasで縦に結合し、1枚のJPEG（Base64、ヘッダ抜き）を返す
+    // 複数画像をCanvasで縦結合＋長辺リサイズし、1枚のJPEG（Base64ヘッダ抜き）を返す
     async function mergeImagesToBase64(files) {
-      if (files.length === 1) {
-        // 1枚だけなら結合不要。そのままBase64化。
-        const base64 = await toBase64(files[0]);
-        return base64.split(',')[1];
-      }
+      const MAX_LONG_SIDE = 1500; // 長辺の最大ピクセル数
+      const JPEG_QUALITY  = 0.82; // JPEG品質
 
       const images = await Promise.all(files.map(loadImage));
 
-      // 横幅は最大のものに合わせ、各画像はその幅にスケーリングして高さを再計算
-      const targetWidth = Math.max(...images.map(img => img.naturalWidth));
-      const scaledHeights = images.map(img =>
-        Math.round(img.naturalHeight * (targetWidth / img.naturalWidth))
-      );
-      const totalHeight = scaledHeights.reduce((sum, h) => sum + h, 0);
+      // リサイズ後のサイズを計算
+      function calcSize(img) {
+        const w = img.naturalWidth;
+        const h = img.naturalHeight;
+        const longSide = Math.max(w, h);
+        if (longSide <= MAX_LONG_SIDE) return { w, h };
+        const scale = MAX_LONG_SIDE / longSide;
+        return { w: Math.round(w * scale), h: Math.round(h * scale) };
+      }
 
-      mergeCanvas.width = targetWidth;
+      const sizes = images.map(calcSize);
+
+      // 横幅はリサイズ後の最大値に統一
+      const targetWidth = Math.max(...sizes.map(s => s.w));
+
+      // 横幅に合わせて各画像の高さを再スケール
+      const finalHeights = images.map((img, idx) => {
+        const s = sizes[idx];
+        return Math.round(s.h * (targetWidth / s.w));
+      });
+
+      const totalHeight = finalHeights.reduce((sum, h) => sum + h, 0);
+
+      mergeCanvas.width  = targetWidth;
       mergeCanvas.height = totalHeight;
       const ctx = mergeCanvas.getContext('2d');
 
-      // 背景を白で塗っておく（余白対策）
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, targetWidth, totalHeight);
 
       let yOffset = 0;
       images.forEach((img, idx) => {
-        const h = scaledHeights[idx];
+        const h = finalHeights[idx];
         ctx.drawImage(img, 0, yOffset, targetWidth, h);
         yOffset += h;
       });
 
-      // JPEGとして書き出し（品質0.85でファイルサイズを抑える）
-      const dataUrl = mergeCanvas.toDataURL('image/jpeg', 0.85);
+      const dataUrl = mergeCanvas.toDataURL('image/jpeg', JPEG_QUALITY);
       return dataUrl.split(',')[1];
     }
 
     async function runProcess() {
       if (selectedFiles.length === 0) return;
 
-      // UI切り替え
-      runBtn.disabled = true;
-      loading.style.display = 'block';
-      result.style.display = 'none';
+      runBtn.disabled        = true;
+      loading.style.display  = 'block';
+      result.style.display   = 'none';
       resetBtn.style.display = 'none';
       loadingText.textContent = selectedFiles.length > 1
-        ? `${selectedFiles.length}枚の画像を結合中...`
-        : 'AIが画像を解析中...';
+        ? `${selectedFiles.length}枚の画像を結合・リサイズ中...`
+        : '画像を準備中...';
 
       try {
-        // 複数枚なら結合して1枚のBase64に、1枚ならそのままBase64に
         const base64Data = await mergeImagesToBase64(selectedFiles);
 
         loadingText.textContent = 'AIが画像を解析中...';
 
-        // GASのサーバー関数を呼び出す（常に1枚のBase64文字列を渡す）
         google.script.run
           .withSuccessHandler((res) => {
-            loading.style.display = 'none';
-            result.style.display = 'block';
+            loading.style.display  = 'none';
+            result.style.display   = 'block';
             resetBtn.style.display = 'block';
             if (res.success) {
               result.className = 'success';
@@ -486,26 +463,26 @@
           })
           .withFailureHandler((err) => {
             loading.style.display = 'none';
-            result.style.display = 'block';
-            result.className = 'error';
-            result.innerHTML = `<span class="result-icon">❌</span>通信エラー: ${err.message}`;
-            runBtn.disabled = false;
+            result.style.display  = 'block';
+            result.className      = 'error';
+            result.innerHTML      = `<span class="result-icon">❌</span>通信エラー: ${err.message}`;
+            runBtn.disabled       = false;
           })
           .processImage(base64Data);
 
       } catch (e) {
         loading.style.display = 'none';
-        result.style.display = 'block';
-        result.className = 'error';
-        result.innerHTML = `<span class="result-icon">❌</span>エラー: ${e.message}`;
-        runBtn.disabled = false;
+        result.style.display  = 'block';
+        result.className      = 'error';
+        result.innerHTML      = `<span class="result-icon">❌</span>エラー: ${e.message}`;
+        runBtn.disabled       = false;
       }
     }
 
     function toBase64(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
+        reader.onload  = () => resolve(reader.result);
         reader.onerror = reject;
         reader.readAsDataURL(file);
       });
@@ -513,8 +490,8 @@
 
     function resetAll() {
       resetUpload();
-      result.style.display = 'none';
-      resetBtn.style.display = 'none';
+      result.style.display    = 'none';
+      resetBtn.style.display  = 'none';
       loadingText.textContent = 'AIが画像を解析中...';
     }
   </script>
